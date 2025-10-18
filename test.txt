@@ -1,0 +1,56 @@
+Agentic AI: A New Paradigm in Artificial Intelligence
+
+Artificial intelligence (AI) has advanced rapidly in recent years, moving beyond static systems that simply respond to prompts toward more dynamic models capable of autonomous action. A growing concept in this field is agentic AI—AI systems that operate as “agents,” able to make decisions, pursue goals, and interact with environments in ways that resemble human agency. While traditional AI tools focus primarily on prediction and pattern recognition, agentic AI emphasizes autonomy, proactivity, and the capacity to influence outcomes.
+
+At its core, an agentic AI system is characterized by goal-directed behavior. Rather than waiting passively for a user to input queries, the AI can take initiative. For example, an agentic AI tasked with managing a person’s schedule might not only suggest optimal meeting times but also contact participants, negotiate alternatives, and reschedule events as conditions change. This goes beyond a chatbot that simply retrieves information—it reflects an AI that acts with a level of independence.
+
+Another defining feature of agentic AI is its ability to interact with complex environments. In traditional machine learning models, inputs and outputs are fixed: a question goes in, an answer comes out. By contrast, agentic systems can operate in dynamic contexts where conditions evolve over time. They can monitor feedback, adapt their strategies, and learn iteratively. This adaptive quality allows them to function in real-world scenarios, such as financial trading, logistics optimization, or personal health monitoring, where circumstances shift unpredictably.
+
+Agentic AI also differs from narrow automation. Automation follows predefined rules: if X happens, do Y. In contrast, an agentic AI can handle ambiguity, set sub-goals, and make trade-offs without explicit instructions for every contingency. It blends planning, reasoning, and action in a loop that resembles how humans approach problems. In this sense, agentic AI represents a bridge between raw computational power and practical problem-solving.
+
+However, the rise of agentic AI introduces new challenges. One major concern is safety and alignment. A system that can take initiative must be carefully aligned with human values and intentions. For instance, if an agentic AI is instructed to maximize profit, it must not do so in ways that exploit users or break laws. This problem, often referred to as the “alignment problem,” becomes more pressing when AI systems are empowered to act with autonomy. Guardrails, oversight mechanisms, and transparency are critical to ensure trust and accountability.
+
+Another challenge is responsibility. When an AI agent takes an action with real-world consequences, such as executing a financial trade or adjusting a medical treatment schedule, who is accountable if things go wrong? Clear frameworks are needed to balance the benefits of AI autonomy with human oversight and ethical responsibility.
+
+The potential benefits, however, are vast. Agentic AI could transform industries by reducing friction in decision-making, automating complex workflows, and enabling entirely new forms of collaboration between humans and machines. For individuals, it could serve as a true digital assistant—anticipating needs, coordinating activities, and even helping with long-term personal goals.
+
+In conclusion, agentic AI represents a significant step forward in artificial intelligence, shifting the paradigm from passive tools to active, goal-oriented partners. While its promise is immense, it also demands careful design and regulation to ensure it acts in ways that are beneficial, ethical, and aligned with human priorities. As research and development continue, agentic AI will likely shape the future of work, society, and human-AI interaction in profound ways.
+
+
+Extra code ( Must ignore it while summarizing ) :
+
+@cl.on_message
+async def on_message(message: cl.Message):
+    """Handle user input and stream back responses (with token streaming)"""
+    agent: Agent = cl.user_session.get("agent")
+
+    stream = Runner.run_streamed(agent, message.content)
+
+    async for event in stream.stream_events():
+        if event.type == "run_item_stream_event":
+            if event.name == "tool_called":
+                await cl.Message(content=f"🔧 Tool called: {event.item.raw_item.name}").send()
+
+            elif event.name == "tool_output":
+                try:
+                    output_data = json.loads(event.item.output)
+                    await cl.Message(
+                        content=f"📄 Tool output: {output_data.get('text', event.item.output)}"
+                    ).send()
+                except json.JSONDecodeError:
+                    await cl.Message(content=f"📄 Tool output: {event.item.output}").send()
+
+            elif event.name == "message_output_created":
+                # Start a streaming message
+                msg = cl.Message(content="🤖 Assistant: ")
+                await msg.send()
+
+                # Gemini often returns a full text block, so simulate token streaming
+                content_blocks = event.item.raw_item.content
+                for block in content_blocks:
+                    if hasattr(block, "text"):
+                        # Stream word by word to mimic token streaming
+                        for token in block.text.split():
+                            msg.content += token + " "
+                            await msg.update()
+                            await asyncio.sleep(0.03)  # adjust typing speed (0.01-0.05)
